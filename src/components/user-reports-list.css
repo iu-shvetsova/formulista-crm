@@ -1,0 +1,4 @@
+.user-reports-collapse .ant-collapse-header-text {
+  min-width: 0;
+  overflow: hidden;
+}
