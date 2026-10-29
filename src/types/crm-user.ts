@@ -1,4 +1,6 @@
-export type CrmProfileStatus = "complete" | "in_progress" | "not_started";
+import type { CrmUserReferral } from "./crm-referral";
+
+export type CrmProfileStatus ="complete" | "in_progress" | "not_started";
 export type CrmSubscriptionStatus = "active" | "expired" | "none";
 
 export type CrmUserListItem = {
@@ -11,6 +13,7 @@ export type CrmUserListItem = {
   paidUntil: string | null;
   freeAnalysisCredits: number;
   subscriptionAnalysisCredits: number;
+  createdAt: string;
 };
 
 export type CrmUserPayment = {
@@ -39,7 +42,7 @@ export type CrmUserDetails = CrmUserListItem & {
   subscriptionCreditsResetAt: string | null;
   totalAnalysisCredits: number;
   payments: CrmUserPayment[];
-  createdAt: string;
+  referral: CrmUserReferral;
   updatedAt: string;
 };
 

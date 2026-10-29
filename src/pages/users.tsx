@@ -27,13 +27,14 @@ function formatDate(value: string | null): string {
   return value ? dayjs(value).format("DD MMM YYYY, HH:mm") : "—";
 }
 
-const columns: TableColumnsType<CrmUserListItem> = [
+const baseColumns: TableColumnsType<CrmUserListItem> = [
   { title: "Telegram ID", dataIndex: "telegramUserId" },
   {
     title: "Username",
     dataIndex: "username",
     render: (username: string | null) => (username ? `@${username}` : "—"),
   },
+  { title: "Created at", dataIndex: "createdAt", render: formatDate },
   {
     title: "Profile",
     dataIndex: "profileStatus",
@@ -56,6 +57,12 @@ const columns: TableColumnsType<CrmUserListItem> = [
     render: formatDate,
   },
 ];
+
+// Все столбцы одной ширины: при fixed-раскладке явные доли не зависят от содержимого.
+const columns: TableColumnsType<CrmUserListItem> = baseColumns.map((column) => ({
+  ...column,
+  width: `${100 / baseColumns.length}%`,
+}));
 
 export function UsersPage() {
   const { show } = useNavigation();
@@ -92,6 +99,7 @@ export function UsersPage() {
           {...tableProps}
           rowKey="id"
           columns={columns}
+          tableLayout="fixed"
           onRow={(user) => ({
             onClick: () => show("users", user.id),
             onKeyDown: (event) => {

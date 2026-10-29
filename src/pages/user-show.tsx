@@ -21,6 +21,7 @@ import {
   EditableAccessValue,
   type EditableAccessField,
 } from "../components/editable-access-value";
+import { UserReferrals } from "../components/user-referrals";
 import { UserReportsList } from "../components/user-reports-list";
 import { crmApiUrl } from "../providers/api";
 import {
@@ -399,6 +400,21 @@ export function UserShowPage() {
                   ),
                 },
               ]}
+            />
+          </section>
+
+          <section>
+            <UserReferrals
+              key={user.id}
+              userId={user.id}
+              referral={user.referral}
+              onRewardIssued={async () => {
+                // Подписка и статистика пригласившей изменились: сбрасываем локальную копию
+                // после правки доступа и перечитываем карточку.
+                setUpdatedUser(null);
+                await query.refetch();
+                await invalidate({ resource: "users", invalidates: ["list"] });
+              }}
             />
           </section>
 

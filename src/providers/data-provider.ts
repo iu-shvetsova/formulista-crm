@@ -74,17 +74,21 @@ async function mutateJson<TData>(
       typeof errorBody.error === "string"
         ? errorBody.error
         : null;
+    const isReward = /\/(subscription|first-analysis)-reward$/.test(url);
     const messages: Record<number, string> = {
       401: "Session expired. Sign in again.",
       403: "This CRM origin is not allowed by the server.",
-      404: "User not found.",
-      409: "Lifetime access is no longer active.",
+      404: isReward ? "Referral not found." : "User not found.",
+      // Для награды 409 — «уже выдана» или «нет оплаты»: причину называет сервер.
+      409: isReward
+        ? (serverMessage ?? "Reward cannot be issued.")
+        : "Lifetime access is no longer active.",
     };
     throw {
       message:
         messages[response.status] ??
         (response.status === 400 ? serverMessage : null) ??
-        "Unable to update user access.",
+        (isReward ? "Unable to issue the reward." : "Unable to update user access."),
       statusCode: response.status,
     } satisfies HttpError;
   }
@@ -99,7 +103,12 @@ export const dataProvider: DataProvider = {
     pagination,
     filters,
   }: GetListParams): Promise<GetListResponse<TData>> => {
-    if (resource !== "users" && resource !== "analyses" && resource !== "unknown-ingredients") {
+    if (
+      resource !== "users" &&
+      resource !== "analyses" &&
+      resource !== "referrals" &&
+      resource !== "unknown-ingredients"
+    ) {
       return unsupported();
     }
 
@@ -118,6 +127,12 @@ export const dataProvider: DataProvider = {
         query.set("status", statusFilter.value);
       }
       url = `${crmApiUrl}/users/${encodeURIComponent(String(userIdFilter.value))}/analyses?${query}`;
+    } else if (resource === "referrals") {
+      const userIdFilter = filters?.find((filter) => "field" in filter && filter.field === "userId");
+      if (!userIdFilter || !("value" in userIdFilter) || userIdFilter.value == null) {
+        return unsupported();
+      }
+      url = `${crmApiUrl}/users/${encodeURIComponent(String(userIdFilter.value))}/referrals?${query}`;
     } else if (resource === "unknown-ingredients") {
       const statusFilter = filters?.find((filter) => "field" in filter && filter.field === "status");
       if (statusFilter && "value" in statusFilter && typeof statusFilter.value === "string" && statusFilter.value) {
@@ -138,7 +153,9 @@ export const dataProvider: DataProvider = {
         ? "Unable to load users."
         : resource === "analyses"
           ? "Unable to load reports."
-          : "Unable to load ingredients.",
+          : resource === "referrals"
+            ? "Unable to load invited friends."
+            : "Unable to load ingredients.",
     );
     return { data: result.items, total: result.total };
   },
@@ -160,6 +177,7 @@ export const dataProvider: DataProvider = {
   }: CustomParams): Promise<CustomResponse<TData>> => {
     const userEndpoint = url.startsWith(`${crmApiUrl}/users/`);
     const lifetimeEndpoint = url.endsWith("/lifetime-access");
+    const rewardEndpoint = /\/referrals\/\d+\/(subscription|first-analysis)-reward$/.test(url);
     const editableEndpoint = [
       "/paid-until",
       "/subscription-credits-reset-at",
@@ -168,6 +186,7 @@ export const dataProvider: DataProvider = {
     ].some((path) => url.endsWith(path));
     if (!userEndpoint || !(
       ((method === "post" || method === "delete") && lifetimeEndpoint) ||
+      (method === "post" && rewardEndpoint) ||
       (method === "put" && editableEndpoint)
     )) {
       return unsupported();
