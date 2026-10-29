@@ -177,6 +177,7 @@ export const dataProvider: DataProvider = {
   }: CustomParams): Promise<CustomResponse<TData>> => {
     const userEndpoint = url.startsWith(`${crmApiUrl}/users/`);
     const lifetimeEndpoint = url.endsWith("/lifetime-access");
+    const blockEndpoint = url.endsWith("/block");
     const rewardEndpoint = /\/referrals\/\d+\/(subscription|first-analysis)-reward$/.test(url);
     const editableEndpoint = [
       "/paid-until",
@@ -185,7 +186,7 @@ export const dataProvider: DataProvider = {
       "/subscription-analysis-credits",
     ].some((path) => url.endsWith(path));
     if (!userEndpoint || !(
-      ((method === "post" || method === "delete") && lifetimeEndpoint) ||
+      ((method === "post" || method === "delete") && (lifetimeEndpoint || blockEndpoint)) ||
       (method === "post" && rewardEndpoint) ||
       (method === "put" && editableEndpoint)
     )) {

@@ -21,6 +21,7 @@ import {
   EditableAccessValue,
   type EditableAccessField,
 } from "../components/editable-access-value";
+import { BlockUserButton, BlockedUserAlert } from "../components/user-block";
 import { UserReferrals } from "../components/user-referrals";
 import { UserReportsList } from "../components/user-reports-list";
 import { crmApiUrl } from "../providers/api";
@@ -165,6 +166,27 @@ export function UserShowPage() {
     }
   }
 
+  async function changeBlock(block: boolean, reason = ""): Promise<boolean> {
+    if (!user || mutation.isPending) return false;
+
+    try {
+      const result = await mutateAsync({
+        url: `${crmApiUrl}/users/${encodeURIComponent(String(user.id))}/block`,
+        method: block ? "post" : "delete",
+        values: block && reason ? { reason } : {},
+      });
+      setUpdatedUser(result.data);
+      await invalidate({ resource: "users", invalidates: ["list"] });
+      message.success(block ? "User blocked." : "User unblocked.");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const savingBlock =
+    mutation.isPending && mutation.variables?.url.endsWith("/block") === true;
+
   function isSavingField(field: EditableAccessField): boolean {
     return (
       mutation.isPending &&
@@ -176,7 +198,18 @@ export function UserShowPage() {
     <Show
       title={user ? `User ${user.telegramUserId}` : "User details"}
       isLoading={query.isLoading}
-      headerButtons={[]}
+      headerButtons={
+        user && !user.blockedAt ? (
+          <BlockUserButton
+            busy={mutation.isPending}
+            saving={savingBlock}
+            onBlock={(reason) => changeBlock(true, reason)}
+          />
+        ) : (
+          // Пустой массив, а не null: на null Refine рисует свои кнопки по умолчанию.
+          []
+        )
+      }
       breadcrumb={false}
     >
       {query.isError ? (
@@ -191,6 +224,16 @@ export function UserShowPage() {
         />
       ) : user ? (
         <Space direction="vertical" size={32} style={{ width: "100%" }}>
+          {user.blockedAt ? (
+            <BlockedUserAlert
+              blockedAt={user.blockedAt}
+              blockedReason={user.blockedReason}
+              busy={mutation.isPending}
+              saving={savingBlock}
+              onUnblock={() => changeBlock(false)}
+            />
+          ) : null}
+
           <section>
             <Typography.Title level={4}>User profile</Typography.Title>
             <Row gutter={[48, 24]}>

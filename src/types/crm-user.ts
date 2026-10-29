@@ -13,6 +13,7 @@ export type CrmUserListItem = {
   paidUntil: string | null;
   freeAnalysisCredits: number;
   subscriptionAnalysisCredits: number;
+  blocked: boolean;
   createdAt: string;
 };
 
@@ -43,6 +44,9 @@ export type CrmUserDetails = CrmUserListItem & {
   totalAnalysisCredits: number;
   payments: CrmUserPayment[];
   referral: CrmUserReferral;
+  // null — не заблокирован.
+  blockedAt: string | null;
+  blockedReason: string | null;
   updatedAt: string;
 };
 
